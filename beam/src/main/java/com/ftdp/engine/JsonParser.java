@@ -51,13 +51,13 @@ public class JsonParser {
                     .forEach(node -> {
                         allJsonNodes.put(node.get("id").asText(), node);
                         String type = node.get("type").asText();
-                        if (type == "conf") {
+                        if (type.equals("conf")) {
                             confNode = node;
-                        } else if (type == "source") {
+                        } else if (type.equals("source")) {
                             sourceNodeList.add(node);
-                        } else if (type == "processor") {
+                        } else if (type.equals("processor")) {
                             processorNodeList.add(node);
-                        } else if (node.get("type").asText() == "sink") {
+                        } else if (type.equals("sink")) {
                             sinkNodeList.add(node);
                         }
                     });
@@ -116,17 +116,18 @@ public class JsonParser {
     }
 
     public void addChild(FlowNode node) {
-        StreamSupport.stream(node.getNodeInfo().get("wires").spliterator(), false)
+        StreamSupport.stream(node.getNodeInfo().get("wires").get(0).spliterator(), false)
                 .forEach(
                         wire -> {
                             FlowNode subNode = processorAndSinkNodeMap.get(wire.asText());
+                            subNode.addParent(node);
                             node.addChild(subNode);
                         }
                 );
     }
 
     public static void main(String[] args) {
-
-//        parse(jsonStr);
+        JsonParser parser = new JsonParser();
+        parser.parse("dwm/tables/aid_table.json");
     }
 }

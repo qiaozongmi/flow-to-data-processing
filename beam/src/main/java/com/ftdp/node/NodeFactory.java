@@ -11,7 +11,7 @@ public class NodeFactory {
             sourceNode = Class
                     .forName(nodeInfo.get("class").asText())
                     .asSubclass(FlowNode.class)
-                    .getConstructor(FlowNode.class)
+                    .getConstructor(FlowEnv.class, JsonNode.class)
                     .newInstance(env, nodeInfo);
         } catch (Exception e) {
             e.printStackTrace();
@@ -24,7 +24,7 @@ public class NodeFactory {
             sourceNode = Class
                     .forName(nodeInfo.get("class").asText())
                     .asSubclass(SourceNode.class)
-                    .getConstructor(SourceNode.class)
+                    .getConstructor(FlowEnv.class, JsonNode.class)
                     .newInstance(env, nodeInfo);
         } catch (Exception e) {
             e.printStackTrace();
@@ -37,7 +37,7 @@ public class NodeFactory {
             sourceNode = Class
                     .forName(nodeInfo.get("class").asText())
                     .asSubclass(FlowNode.class)
-                    .getConstructor(FlowNode.class)
+                    .getConstructor(FlowEnv.class, JsonNode.class)
                     .newInstance(env, nodeInfo);
         } catch (Exception e) {
             e.printStackTrace();

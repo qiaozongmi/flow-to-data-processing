@@ -4,10 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.ftdp.beam.func.RowCombiner;
 import com.ftdp.beam.util.MergeRowUtil;
 import com.ftdp.engine.FlowEnv;
+import org.apache.beam.examples.WordCount;
 import org.apache.beam.sdk.schemas.Schema;
-import org.apache.beam.sdk.transforms.Combine;
-import org.apache.beam.sdk.transforms.MapElements;
-import org.apache.beam.sdk.transforms.SimpleFunction;
+import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.Row;
@@ -30,11 +29,11 @@ public class ReduceByKeyNode extends BaseFlowNode {
                     m.get("reduce_method").asText("sum"),
                     m.get("value_alias").asText(m.get("value_name").asText())))
             .collect(Collectors.toSet());
-    Schema inputSchema = getInput().getSchema();
 
     public ReduceByKeyNode(FlowEnv env, JsonNode nodeInfo) {
         super(env, nodeInfo);
     }
+
     public PCollection<Row> process(PCollection<Row> input) {
         return input
                 .apply(MapElements.via(
@@ -74,12 +73,9 @@ public class ReduceByKeyNode extends BaseFlowNode {
                                                     .builder()
                                                     .setOption("reduce_method", Schema.FieldType.STRING, v.getValue1())
                                                     .build();
-                                            fieldSchema = fieldSchema.withOptions(options);
+                                            fieldSchema = fieldSchema.withOptions(options).withName(v.getValue2());
                                             valueSchemaBuilder.addField(fieldSchema);
                                             valueList.add(s.getValue(v.getValue0()));
-
-                                            Row.withSchema(s.getSchema())
-                                                    .withFieldValue(v.getValue0(), s.getValue(v.getValue0())).build();
                                         }
                                 );
                                 Row valueRow = Row.withSchema(valueSchemaBuilder.build()).addArray(valueList).build();
@@ -89,15 +85,22 @@ public class ReduceByKeyNode extends BaseFlowNode {
                         }))
                 .apply(Combine.perKey(new RowCombiner()))
                 .apply(MapElements.via(
-                        new SimpleFunction<KV<Row, Row>,Row>() {
+                        new SimpleFunction<KV<Row, Row>, Row>() {
                             @Override
                             public Row apply(KV<Row, Row> s) {
-                                return MergeRowUtil.mergeBaseOneRow(s.getKey(),s.getValue());
+                                try {
+                                    return MergeRowUtil.mergeByMethod(s.getKey(), s.getValue());
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
                             }
                         }));
     }
+
     @Override
     public PCollection<Row> getOutput() {
-       return process(getInput());
+        return process(getInput());
     }
+
 }
+
