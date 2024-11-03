@@ -17,13 +17,14 @@ import org.apache.hive.hcatalog.data.HCatRecord;
 import org.apache.hive.hcatalog.data.schema.HCatFieldSchema;
 import org.apache.hive.hcatalog.data.schema.HCatSchemaUtils;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class PrintSinkNode extends BaseFlowNode implements SinkNode {
+public class PrintSinkNode extends BaseFlowNode implements SinkNode, Serializable {
 
     public PrintSinkNode(FlowEnv env, JsonNode nodeInfo) {
         super(env, nodeInfo);

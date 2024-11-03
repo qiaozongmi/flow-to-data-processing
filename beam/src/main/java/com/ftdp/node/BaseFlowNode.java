@@ -2,6 +2,8 @@ package com.ftdp.node;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ftdp.engine.FlowEnv;
+import org.apache.beam.sdk.coders.RowCoder;
+import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.transforms.Flatten;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.PCollectionList;
@@ -25,6 +27,9 @@ public abstract class BaseFlowNode implements FlowNode {
 
     JsonNode nodeInfo;
 
+    public BaseFlowNode() {
+    }
+
     public BaseFlowNode(FlowEnv env, JsonNode nodeInfo) {
         this.env = env;
         this.nodeInfo = nodeInfo;
@@ -41,8 +46,9 @@ public abstract class BaseFlowNode implements FlowNode {
     public ArrayList<FlowNode> getChilds() {
         return childs;
     }
+
     @Override
-    public String getNodeId(){
+    public String getNodeId() {
         return nodeId;
     }
 
@@ -60,23 +66,30 @@ public abstract class BaseFlowNode implements FlowNode {
 
     @Override
     public PCollection<Row> getInput() {
+        Schema schema = getParents().get(0).getOutput().getSchema();
         Iterable<PCollection<Row>> inputList = getParents().stream()
                 .map(node -> node.getOutput())
                 .collect(toList());
+
         PCollection<Row> result = PCollectionList
                 .of(inputList)
-                .apply("Merge", Flatten.pCollections());
+                .apply("Merge", Flatten.pCollections())
+                .setCoder(RowCoder.of(schema));
+
 
         return result;
     }
+
     @Override
     public PCollection<Row> getOutput() {
         return null;
     }
-    public JsonNode getNodeInfo(){
+
+    public JsonNode getNodeInfo() {
         return nodeInfo;
     }
-    public void init(){
+
+    public void init() {
     }
 
     @Override

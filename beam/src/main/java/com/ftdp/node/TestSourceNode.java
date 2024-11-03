@@ -8,6 +8,7 @@ import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.transforms.Create;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.Row;
+import org.apache.beam.sdk.values.TypeDescriptors;
 
 import java.util.*;
 
@@ -24,13 +25,13 @@ public class TestSourceNode extends SourceNode {
         Schema.Field aid = Schema.Field.of("aid", Schema.FieldType.INT64);
         Schema.Field exp_pv = Schema.Field.of("exp_pv", Schema.FieldType.INT64);
 
-        valueSchemaBuilder.addField(aid).addField(exp_pv);
+        Schema schema = valueSchemaBuilder.addField(aid).addField(exp_pv).build();
 
-        Row valueRow1 = Row.withSchema(valueSchemaBuilder.build())
+        Row valueRow1 = Row.withSchema(schema)
                 .addValue(123L)
                 .addValue(1L)
                 .build();
-        Row valueRow2 = Row.withSchema(valueSchemaBuilder.build())
+        Row valueRow2 = Row.withSchema(schema)
                 .addValue(123L)
                 .addValue(1L)
                 .build();
@@ -39,7 +40,7 @@ public class TestSourceNode extends SourceNode {
                 env.getPipeline()
                         .apply(
                                 Create.of(data)
-                        );
+                        ).setRowSchema(schema);
     }
 
     @Override
