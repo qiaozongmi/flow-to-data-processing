@@ -3,22 +3,18 @@ package com.ftdp.beam.util;
 import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.values.Row;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class MergeRowUtil {
-    public static Row mergeByMethod(Row orgRow, Row newRow) throws Exception {
+public class MergeRowUtil implements Serializable {
+    public static Row mergeByMethod(Row orgRow, Row newRow, Schema schema) throws Exception {
+        if (newRow.getValues().size() == 0) {
+            return orgRow;
+        }
         List<Object> valueList = new ArrayList<>();
         Schema.Builder valueSchemaBuilder = Schema.builder();
-        Schema schema;
-        int orgCnt = orgRow.getFieldCount();
-        int newCnt = newRow.getFieldCount();
-        if (orgCnt > newCnt) {
-            schema = orgRow.getSchema();
-        } else {
-            schema = newRow.getSchema();
-        }
         int size = schema.getFieldCount();
 
         for (int i = 0; i < size; i++) {
@@ -32,11 +28,19 @@ public class MergeRowUtil {
                 case "sum":
                     switch (field.getType().getTypeName()) {
                         case INT16:
+                            mergeVal = orgRow.getInt16(i) + newRow.getInt16(i);
+                            break;
                         case INT32:
-                        case INT64:
-                        case DOUBLE:
-                        case FLOAT:
                             mergeVal = orgRow.getInt32(i) + newRow.getInt32(i);
+                            break;
+                        case INT64:
+                            mergeVal = orgRow.getInt64(i) + newRow.getInt64(i);
+                            break;
+                        case DOUBLE:
+                            mergeVal = orgRow.getDouble(i) + newRow.getDouble(i);
+                            break;
+                        case FLOAT:
+                            mergeVal = orgRow.getFloat(i) + newRow.getFloat(i);
                             break;
                         default:
                             throw new Exception("unsurpport type" + field.getType().getTypeName() + " for reduce_method sum");
@@ -49,7 +53,7 @@ public class MergeRowUtil {
             valueSchemaBuilder.addField(field);
             valueList.add(mergeVal);
         }
-        return Row.withSchema(valueSchemaBuilder.build()).addValues(valueList).build();
+        return Row.withSchema(schema).addValues(valueList).build();
     }
 
     public static Row mergeBaseOneRow(Row orgRow, Row newRow) {
@@ -76,7 +80,7 @@ public class MergeRowUtil {
 
         Arrays.stream(rows).forEach(
                 row -> {
-                    if(row != null){
+                    if (row != null) {
                         Schema orgSchema = row.getSchema();
                         for (int i = 0; i < orgSchema.getFieldCount(); i++) {
                             valueList.add(row.getValue(i));

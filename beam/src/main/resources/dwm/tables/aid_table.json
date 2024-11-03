@@ -1,15 +1,18 @@
 [
   {
     "id": "131210baf9527b5b",
-    "type": "tab",
+    "type": "conf",
     "label": "流程 3",
     "disabled": false,
     "info": "",
-    "env": []
+    "env": [],
+    "job_name": "aid_table",
+    "runner": "org.apache.beam.runners.direct.DirectRunner"
   },
   {
     "id": "cc6aeb4ac9f9cb3d",
-    "type": "file in",
+    "type": "source",
+    "class": "com.ftdp.node.TestSourceNode",
     "z": "131210baf9527b5b",
     "name": "",
     "filename": "",
@@ -29,7 +32,16 @@
   },
   {
     "id": "db27c044da7fae49",
-    "type": "function",
+    "type": "processor",
+    "class": "com.ftdp.node.ReduceByKeyNode",
+    "keys": "aid",
+    "values": [
+      {
+        "value_name": "exp_pv",
+        "reduce_method": "sum",
+        "value_alias": "valid_exp_pv"
+      }
+    ],
     "z": "131210baf9527b5b",
     "name": "function 2",
     "func": "\nreturn msg;",
@@ -43,13 +55,14 @@
     "y": 460,
     "wires": [
       [
-        "a0d815dd201d7620"
+        "1be15f81a638decb"
       ]
     ]
   },
   {
     "id": "1be15f81a638decb",
-    "type": "file in",
+    "type": "sink",
+    "class": "com.ftdp.node.PrintSinkNode",
     "z": "131210baf9527b5b",
     "name": "",
     "filename": "",
@@ -62,190 +75,6 @@
     "x": 300,
     "y": 600,
     "wires": [
-      [
-        "0f023e826ac760ac"
-      ]
     ]
-  },
-  {
-    "id": "0f023e826ac760ac",
-    "type": "function",
-    "z": "131210baf9527b5b",
-    "name": "function 3",
-    "func": "\nreturn msg;",
-    "outputs": 1,
-    "timeout": 0,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 460,
-    "y": 600,
-    "wires": [
-      [
-        "a0d815dd201d7620"
-      ]
-    ]
-  },
-  {
-    "id": "a0d815dd201d7620",
-    "type": "join",
-    "z": "131210baf9527b5b",
-    "name": "left join",
-    "mode": "auto",
-    "build": "object",
-    "property": "payload",
-    "propertyType": "msg",
-    "key": "topic",
-    "joiner": "\\n",
-    "joinerType": "str",
-    "useparts": false,
-    "accumulate": true,
-    "timeout": "",
-    "count": "",
-    "reduceRight": false,
-    "reduceExp": "",
-    "reduceInit": "",
-    "reduceInitType": "",
-    "reduceFixup": "",
-    "x": 680,
-    "y": 540,
-    "wires": [
-      [
-        "09c7ba30303a44a4"
-      ]
-    ]
-  },
-  {
-    "id": "09c7ba30303a44a4",
-    "type": "sort",
-    "z": "131210baf9527b5b",
-    "name": "",
-    "order": "ascending",
-    "as_num": false,
-    "target": "payload",
-    "targetType": "msg",
-    "msgKey": "payload",
-    "msgKeyType": "elem",
-    "seqKey": "payload",
-    "seqKeyType": "msg",
-    "x": 890,
-    "y": 540,
-    "wires": [
-      []
-    ]
-  },
-  {
-    "id": "3dcb36d65b43e757",
-    "type": "postgresql",
-    "z": "131210baf9527b5b",
-    "name": "user_info",
-    "query": "SELECT * FROM ;",
-    "postgreSQLConfig": "cb2b7f760c456c5e",
-    "split": false,
-    "rowsPerMsg": 1,
-    "outputs": 1,
-    "x": 280,
-    "y": 700,
-    "wires": [
-      [
-        "15af8e2dab3100b9"
-      ]
-    ]
-  },
-  {
-    "id": "15af8e2dab3100b9",
-    "type": "function",
-    "z": "131210baf9527b5b",
-    "name": "function 4",
-    "func": "\nreturn msg;",
-    "outputs": 1,
-    "timeout": 0,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 440,
-    "y": 700,
-    "wires": [
-      [
-        "a0d815dd201d7620"
-      ]
-    ]
-  },
-  {
-    "id": "dbce2cc15ac853ff",
-    "type": "kafka-consumer",
-    "z": "131210baf9527b5b",
-    "name": "test01",
-    "broker": "2ce1507d84866f7b",
-    "outOfRangeOffset": "earliest",
-    "fromOffset": "latest",
-    "topic": "121",
-    "groupid": "xxx",
-    "x": 270,
-    "y": 800,
-    "wires": [
-      [
-        "29205ea0507e0f32"
-      ]
-    ]
-  },
-  {
-    "id": "29205ea0507e0f32",
-    "type": "function",
-    "z": "131210baf9527b5b",
-    "name": "function 5",
-    "func": "\nreturn msg;",
-    "outputs": 1,
-    "timeout": 0,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 460,
-    "y": 800,
-    "wires": [
-      [
-        "a0d815dd201d7620"
-      ]
-    ]
-  },
-  {
-    "id": "cb2b7f760c456c5e",
-    "type": "postgreSQLConfig",
-    "name": "db1",
-    "host": "127.0.0.1",
-    "hostFieldType": "str",
-    "port": "5432",
-    "portFieldType": "num",
-    "database": "postgres",
-    "databaseFieldType": "str",
-    "ssl": "true",
-    "sslFieldType": "bool",
-    "applicationName": "",
-    "applicationNameType": "str",
-    "max": "10",
-    "maxFieldType": "num",
-    "idle": "1000",
-    "idleFieldType": "num",
-    "connectionTimeout": "10000",
-    "connectionTimeoutFieldType": "num",
-    "user": "",
-    "userFieldType": "str",
-    "password": "",
-    "passwordFieldType": "str"
-  },
-  {
-    "id": "2ce1507d84866f7b",
-    "type": "kafka-broker",
-    "name": "121",
-    "hosts": "1.com:1011",
-    "selfsign": false,
-    "usetls": false,
-    "cacert": "",
-    "clientcert": "",
-    "privatekey": "",
-    "passphrase": ""
   }
 ]
