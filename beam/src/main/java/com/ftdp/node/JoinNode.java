@@ -3,6 +3,8 @@ package com.ftdp.node;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ftdp.beam.util.MergeRowUtil;
 import com.ftdp.engine.FlowEnv;
+import org.apache.beam.sdk.coders.KvCoder;
+import org.apache.beam.sdk.coders.RowCoder;
 import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.MapElements;
@@ -15,26 +17,37 @@ import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.Row;
 import org.apache.beam.sdk.values.TupleTag;
+import org.javatuples.Pair;
+import org.javatuples.Triplet;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class JoinNode extends BaseFlowNode {
+public class JoinNode extends BaseFlowNode implements Serializable {
     FlowNode leftNode;
     FlowNode rightNode;
     String joinType;
 
     // 定义TupleTag用于标记不同的数据集
-    TupleTag<Row> leftTag = new TupleTag<>();
-    TupleTag<Row> rightTag = new TupleTag<>();
+    TupleTag<Row> leftTag;
+    TupleTag<Row> rightTag;
 
-    Set<String> joinkKeys = StreamSupport
-            .stream(nodeInfo.get("join_keys").spliterator(), false)
-            .map(m -> m.asText()).collect(Collectors.toSet());
+    Schema leftSchema;
+
+    Schema rightSchema;
+    Schema joinKeysSchema;
+    Schema leftValueSchema;
+    Schema rightValueSchema;
+    Schema resultSchema;
+    ArrayList<String> joinkKeys;
+    ArrayList<Pair<String, String>> leftValues;
+    ArrayList<Pair<String, String>> rightValues;
+
 
     public JoinNode(FlowEnv env, JsonNode nodeInfo) {
         super(env, nodeInfo);
@@ -42,24 +55,101 @@ public class JoinNode extends BaseFlowNode {
 
     public void init() {
         parents.forEach(p -> {
-            if (p.getNodeId() == nodeInfo.get("left_node_id").asText()) {
+            if (p.getNodeId().equals(nodeInfo.get("left_node_id").asText())) {
                 leftNode = p;
-            } else if (p.getNodeId() == nodeInfo.get("right_node_id").asText()) {
+            } else if (p.getNodeId().equals(nodeInfo.get("right_node_id").asText())) {
                 rightNode = p;
             }
         });
         joinType = nodeInfo.get("join_type").asText();
+        leftSchema = leftNode.getOutput().getSchema();
+        rightSchema = rightNode.getOutput().getSchema();
+
+        joinkKeys = StreamSupport
+                .stream(nodeInfo.get("join_keys").spliterator(), false)
+                .map(m -> m.asText())
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        leftValues = StreamSupport
+                .stream(nodeInfo.get("left_values").spliterator(), false)
+                .map(m ->
+                        Pair.with(
+                                m.get("value_name").asText(),
+                                m.get("value_alias").asText(m.get("value_name").asText())
+                        )
+                )
+                .collect(Collectors.toCollection(ArrayList::new));
+        rightValues = StreamSupport
+                .stream(nodeInfo.get("right_values").spliterator(), false)
+                .map(m ->
+                        Pair.with(
+                                m.get("value_name").asText(),
+                                m.get("value_alias").asText(m.get("value_name").asText())
+                        )
+                )
+                .collect(Collectors.toCollection(ArrayList::new));
+        leftTag = new TupleTag<Row>() {
+        };
+        rightTag = new TupleTag<Row>() {
+
+        };
+
     }
 
     @Override
     public PCollection<Row> getOutput() {
+        Schema.Builder resultSchemaBuilder = Schema.builder();
 
+        Schema.Builder joinKeysS = Schema.builder();
+        joinkKeys.stream().forEach(
+                v -> {
+                    Schema.Field fieldSchema = leftSchema.getField(v);
+                    Schema.Options options = Schema.Options
+                            .builder()
+                            .setOption("alias", Schema.FieldType.STRING, v)
+                            .build();
+                    fieldSchema = fieldSchema.withOptions(options);
+                    joinKeysS.addField(fieldSchema);
+                }
+        );
+        joinKeysSchema = joinKeysS.build();
+        Schema.Builder leftValueSB = Schema.builder();
+        leftValues.stream().forEach(
+                v -> {
+                    Schema.Field fieldSchema = leftSchema.getField(v.getValue0());
+                    Schema.Options options = Schema.Options
+                            .builder()
+                            .setOption("origin_name", Schema.FieldType.STRING, v.getValue0())
+                            .build();
+                    fieldSchema = fieldSchema.withOptions(options).withName(v.getValue1());
+                    leftValueSB.addField(fieldSchema);
+                    resultSchemaBuilder.addField(fieldSchema);
+                }
+        );
+        leftValueSchema = leftValueSB.build();
+
+        Schema.Builder rightValueSB = Schema.builder();
+        rightValues.stream().forEach(
+                v -> {
+                    Schema.Field fieldSchema = leftSchema.getField(v.getValue0());
+                    Schema.Options options = Schema.Options
+                            .builder()
+                            .setOption("origin_name", Schema.FieldType.STRING, v.getValue0())
+                            .build();
+                    fieldSchema = fieldSchema.withOptions(options).withName(v.getValue1());
+                    rightValueSB.addField(fieldSchema);
+                    resultSchemaBuilder.addField(fieldSchema);
+                }
+        );
+        rightValueSchema = rightValueSB.build();
+        resultSchema = resultSchemaBuilder.build();
         // 使用CoGroupByKey转换进行join操作
         return KeyedPCollectionTuple
-                .of(leftTag, leftNode.getOutput().apply(getVia()))
-                .and(rightTag, rightNode.getOutput().apply(getVia()))
+                .of(leftTag, leftNode.getOutput().apply(getVia(joinKeysSchema,leftValueSchema)).setCoder(KvCoder.of(RowCoder.of(joinKeysSchema), RowCoder.of(leftValueSchema))))
+                .and(rightTag, rightNode.getOutput().apply(getVia(joinKeysSchema,rightValueSchema)).setCoder(KvCoder.of(RowCoder.of(joinKeysSchema), RowCoder.of(rightValueSchema))))
                 .apply(CoGroupByKey.create())
-                .apply(ParDo.of(new ProcessJoinResultFn()));
+                .apply(ParDo.of(new ProcessJoinResultFn()))
+                .setRowSchema(resultSchema);
 
     }
 
@@ -103,34 +193,26 @@ public class JoinNode extends BaseFlowNode {
     }
 
     @NotNull
-    private MapElements<Row, KV<Row, Row>> getVia() {
+    private MapElements<Row, KV<Row, Row>> getVia(Schema keySchema, Schema valueSchema) {
         return MapElements.via(
                 new SimpleFunction<Row, KV<Row, Row>>() {
                     @Override
                     public KV<Row, Row> apply(Row s) {
 
-                        Schema schema = s.getSchema();
-
-                        List<Object> keyList = new ArrayList<>();
-                        Schema.Builder keySchemaBuilder = Schema.builder();
-
-                        List<Object> valueList = new ArrayList<>();
-                        Schema.Builder valueSchemaBuilder = Schema.builder();
-
-                        for (int i = 0; i < s.getFieldCount(); i++) {
-                            Schema.Field schemaField = schema.getField(i);
-                            Object value = s.getValue(i);
-                            if (joinkKeys.contains(schema.getField(i).getName())) {
-                                keySchemaBuilder.addField(schemaField);
-                                keyList.add(value);
-                            } else {
-                                valueSchemaBuilder.addField(schemaField);
-                                valueList.add(value);
-                            }
+                        ArrayList<Object> keyList = new ArrayList<>();
+                        for (int i = 0; i < keySchema.getFieldCount(); i++) {
+                            Object value = s.getValue(keySchema.getField(i).getOptions().getValue("origin_name",String.class));
+                            keyList.add(value);
+                        }
+                        ArrayList<Object> valueList = new ArrayList<>();
+                        for (int i = 0; i < valueSchema.getFieldCount(); i++) {
+                            Object value = s.getValue(valueSchema.getField(i).getOptions().getValue("origin_name",String.class));
+                            valueList.add(value);
                         }
 
-                        Row keyRow = Row.withSchema(keySchemaBuilder.build()).addValues(keyList).build();
-                        Row valueRow = Row.withSchema(valueSchemaBuilder.build()).addValues(valueList).build();
+
+                        Row keyRow = Row.withSchema(keySchema).addValues(keyList).build();
+                        Row valueRow = Row.withSchema(valueSchema).addValues(valueList).build();
 
                         return KV.of(keyRow, valueRow);
                     }

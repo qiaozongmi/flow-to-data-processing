@@ -17,8 +17,6 @@ import org.javatuples.Triplet;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -52,10 +50,10 @@ public class ReduceByKeyNode extends BaseFlowNode implements Serializable {
                 .collect(Collectors.toCollection(ArrayList::new));
 
         Schema schema = input.getSchema();
-        Schema.Builder keySchemaBuilder = Schema.builder();
         Schema.Builder resultSchemaBuilder = Schema.builder();
 
 
+        Schema.Builder keySchemaBuilder = Schema.builder();
         keys.stream().forEach(
                 v -> {
                     Schema.Field fieldSchema = schema.getField(v);

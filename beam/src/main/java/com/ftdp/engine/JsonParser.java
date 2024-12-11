@@ -100,6 +100,7 @@ public class JsonParser {
                     });
             processorFlowNodeList.stream().forEach(
                     node -> {
+                        node.init();
                         addChild(node);
                     });
             sinkFlowNodeList.stream().forEach(
@@ -128,6 +129,6 @@ public class JsonParser {
 
     public static void main(String[] args) {
         JsonParser parser = new JsonParser();
-        parser.parse("dwm/tables/aid_table.json");
+        parser.parse("dwm/tables/aid_join_table.json");
     }
 }

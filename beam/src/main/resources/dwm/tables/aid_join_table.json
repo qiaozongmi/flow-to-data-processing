@@ -1,0 +1,125 @@
+[
+  {
+    "id": "131210baf9527b5b",
+    "type": "conf",
+    "label": "流程 3",
+    "disabled": false,
+    "info": "",
+    "env": [],
+    "job_name": "aid_table",
+    "runner": "org.apache.beam.runners.direct.DirectRunner"
+  },
+  {
+    "id": "cc6aeb4ac9f9cb3d",
+    "type": "source",
+    "class": "com.ftdp.node.TestSourceNode",
+    "z": "131210baf9527b5b",
+    "name": "",
+    "filename": "",
+    "filenameType": "str",
+    "format": "utf8",
+    "chunk": false,
+    "sendError": false,
+    "encoding": "none",
+    "allProps": false,
+    "x": 300,
+    "y": 460,
+    "wires": [
+      [
+        "db27c044da7fae49"
+      ]
+    ]
+  },
+  {
+    "id": "cc6aeb4ac9f9cb3f",
+    "type": "source",
+    "class": "com.ftdp.node.TestSourceNode",
+    "z": "131210baf9527b5b",
+    "name": "",
+    "filename": "",
+    "filenameType": "str",
+    "format": "utf8",
+    "chunk": false,
+    "sendError": false,
+    "encoding": "none",
+    "allProps": false,
+    "x": 300,
+    "y": 460,
+    "wires": [
+      [
+        "db27c044da7fae49"
+      ]
+    ]
+  },
+  {
+    "id": "db27c044da7fae49",
+    "type": "processor",
+    "join_keys": ["aid"],
+    "class": "com.ftdp.node.JoinNode",
+    "keys": "aid",
+    "left_node_id": "cc6aeb4ac9f9cb3f",
+    "right_node_id": "cc6aeb4ac9f9cb3d",
+    "join_type": "inner_join",
+    "values": [
+      {
+        "value_name": "exp_pv",
+        "reduce_method": "sum",
+        "value_alias": "valid_exp_pv"
+      }
+    ],
+    "left_values": [
+      {
+        "value_name": "aid",
+        "value_alias": "left_aid"
+      },
+      {
+        "value_name": "exp_pv",
+        "value_alias": "left_exp_pv"
+      }
+    ],
+    "right_values": [
+      {
+        "value_name": "aid",
+        "value_alias": "r_aid"
+      },
+      {
+        "value_name": "exp_pv",
+        "value_alias": "r_exp_pv"
+      }
+    ],
+    "z": "131210baf9527b5b",
+    "name": "function 2",
+    "func": "\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 460,
+    "y": 460,
+    "wires": [
+      [
+        "1be15f81a638decb"
+      ]
+    ]
+  },
+  {
+    "id": "1be15f81a638decb",
+    "type": "sink",
+    "class": "com.ftdp.node.PrintSinkNode",
+    "z": "131210baf9527b5b",
+    "name": "",
+    "filename": "",
+    "filenameType": "str",
+    "format": "utf8",
+    "chunk": false,
+    "sendError": false,
+    "encoding": "none",
+    "allProps": false,
+    "x": 300,
+    "y": 600,
+    "wires": [
+    ]
+  }
+]

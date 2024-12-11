@@ -10,9 +10,10 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.Row;
 import org.apache.beam.sdk.values.TypeDescriptors;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class TestSourceNode extends SourceNode {
+public class TestSourceNode extends SourceNode implements Serializable {
     PCollection<Row> source;
 
     public TestSourceNode(FlowEnv env, JsonNode nodeInfo) {
